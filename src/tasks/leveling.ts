@@ -338,6 +338,20 @@ export const LevelingQuest: Quest = {
       limit: { tries: 1 },
     },
     {
+      name: "Pull Stick-Knife of Loathing",
+      completed: () =>
+        have($item`Stick-Knife of Loathing`) ||
+        storageAmount($item`Stick-Knife of Loathing`) < 1 ||
+        get("_roninStoragePulls")
+          .split(",")
+          .includes(toInt($item`Stick-Knife of Loathing`).toString()) ||
+        get("_roninStoragePulls").split(",").length >= 5,
+      do: (): void => {
+        takeStorage($item`Stick-Knife of Loathing`, 1);
+      },
+      limit: { tries: 1 },
+    },
+    {
       name: "Wish for XP% buff",
       // TODO: Make this completed if we've already wished twice with the paw (requires mafia tracking)
       completed: () =>
@@ -1003,6 +1017,8 @@ export const LevelingQuest: Quest = {
           get("_neverendingPartyFreeTurns") >= 10),
       do: powerlevelingLocation(),
       prepare: (): void => {
+        print(`Powerleveling with base mys of ${myBasestat($stat`Mysticality`)}`);
+        print(`Powerleveling. Have CBB ingredients? ${haveCBBIngredients()}`);
         restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
         unbreakableUmbrella();
         garbageShirt();
@@ -1023,6 +1039,7 @@ export const LevelingQuest: Quest = {
       combat: new CombatStrategy().macro(
         Macro.tryItem($item`red rocket`)
           .trySkill($skill`Bowl Sideways`)
+          .trySkill($skill`Feel Pride`)
           .default()
       ),
       post: (): void => {
