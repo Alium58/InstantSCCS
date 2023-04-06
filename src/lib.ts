@@ -1,10 +1,17 @@
 import {
   cliExecute,
+  combatRateModifier,
   Effect,
+  familiarWeight,
   getCampground,
   Item,
   mpCost,
+  myBasestat,
+  myBuffedstat,
+  myFamiliar,
+  myMaxhp,
   myMp,
+  numericModifier,
   print,
   restoreMp,
   retrieveItem,
@@ -14,7 +21,7 @@ import {
   use,
   visitUrl,
 } from "kolmafia";
-import { $effect, $item, $items, get, have, set } from "libram";
+import { $effect, $item, $items, get, have, set, $stat } from "libram";
 import { printModtrace } from "libram/dist/modifier";
 import { forbiddenEffects } from "./resources";
 
@@ -92,9 +99,80 @@ export function advCost(whichTest: number): number {
   }
 }
 
+export function printTestResultDetails(whichTest: number): void {
+  let stat, turnsSaved;
+  switch (whichTest) {
+    case CommunityServiceTests.HPTEST:
+      stat = myMaxhp() - (myBuffedstat($stat`Muscle`) + 3);
+      turnsSaved = Math.floor(stat / 30);
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.MUSTEST:
+      stat = myBuffedstat($stat`Muscle`) - myBasestat($stat`Muscle`);
+      turnsSaved = Math.floor(stat / 30);
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.MYSTTEST:
+      stat = myBuffedstat($stat`Mysticality`) - myBasestat($stat`Mysticality`);
+      turnsSaved = Math.floor(stat / 30);
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.MOXTEST:
+      stat = myBuffedstat($stat`Moxie`) - myBasestat($stat`Moxie`);
+      turnsSaved = Math.floor(stat / 30);
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.FAMTEST:
+      stat = familiarWeight(myFamiliar());
+      turnsSaved = Math.floor(stat / 5);
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.WPNTEST:
+      stat = numericModifier("Weapon Damage");
+      turnsSaved = Math.floor(stat / 50);
+      print(`Buffed to weapon dmg ${stat} to save ${turnsSaved} turns`);
+      stat = numericModifier("Weapon Damage Percent");
+      turnsSaved = Math.floor(stat / 50);
+      print(`Buffed to weapon dmg pct ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.SPELLTEST:
+      stat = numericModifier("Spell Damage");
+      turnsSaved = Math.floor(stat / 50);
+      print(`Buffed to spell dmg ${stat} to save ${turnsSaved} turns`);
+      stat = numericModifier("Spell Damage Percent");
+      turnsSaved = Math.floor(stat / 50);
+      print(`Buffed to spell dmg pct ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.COMTEST:
+      stat = combatRateModifier();
+      if (stat < -25) {
+        stat = (stat - 25) * 5 + 25; // convert from softcap to actual amount of -combat
+      }
+      turnsSaved = stat * 3;
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.ITEMTEST:
+      stat = numericModifier("Item Drop");
+      turnsSaved = Math.floor(stat / 30);
+      print(`Buffed to item drop ${stat} to save ${turnsSaved} turns`);
+      stat = numericModifier("Booze Drop");
+      turnsSaved = Math.floor(stat / 15);
+      print(`Buffed to booze drop ${stat} to save ${turnsSaved} turns`);
+      return;
+    case CommunityServiceTests.HOTTEST:
+      stat = numericModifier("Hot Resistance");
+      turnsSaved = stat;
+      print(`Buffed to ${stat} to save ${turnsSaved} turns`);
+      return;
+    default:
+      return; // Whatever edge cases we have not handled yet
+  }
+}
+
 export function logTestSetup(whichTest: number): void {
   const testTurns = advCost(whichTest);
   printModtrace(testModifiers.get(whichTest) ?? []);
+  printTestResultDetails(whichTest);
   print(
     `${testNames.get(whichTest) ?? "Unknown Test"} takes ${testTurns} adventure${
       testTurns === 1 ? "" : "s"
