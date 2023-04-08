@@ -123,7 +123,7 @@ export function printTestResultDetails(whichTest: number): void {
       print(`Buffed to ${stat} to save ${turnsSaved} turns`);
       return;
     case CommunityServiceTests.FAMTEST:
-      stat = familiarWeight(myFamiliar());
+      stat = familiarWeight(myFamiliar()) + numericModifier("Familiar Weight");
       turnsSaved = Math.floor(stat / 5);
       print(`Buffed to ${stat} to save ${turnsSaved} turns`);
       return;
@@ -144,10 +144,7 @@ export function printTestResultDetails(whichTest: number): void {
       print(`Buffed to spell dmg pct ${stat} to save ${turnsSaved} turns`);
       return;
     case CommunityServiceTests.COMTEST:
-      stat = combatRateModifier();
-      if (stat < -25) {
-        stat = (stat - 25) * 5 + 25; // convert from softcap to actual amount of -combat
-      }
+      stat = Math.abs(combatRateModifier());
       turnsSaved = stat * 3;
       print(`Buffed to ${stat} to save ${turnsSaved} turns`);
       return;
