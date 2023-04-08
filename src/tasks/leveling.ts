@@ -82,7 +82,7 @@ import {
   rufusTarget,
 } from "libram/dist/resources/2023/ClosedCircuitPayphone";
 
-const targetBaseMyst = 190;
+const targetBaseMyst = 165;
 const baseBoozes = $items`bottle of rum, boxed wine, bottle of gin, bottle of vodka, bottle of tequila, bottle of whiskey`;
 const freeFightMonsters: Monster[] = $monsters`Witchess Bishop, Witchess King, Witchess Witch, sausage goblin, Eldritch Tentacle`;
 const craftedCBBFoods: Item[] = $items`honey bun of Boris, roasted vegetable of Jarlsberg, Pete's rich ricotta, plain calzone`;
