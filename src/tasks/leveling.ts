@@ -54,6 +54,7 @@ import {
   $stat,
   clamp,
   CombatLoversLocket,
+  CommunityService,
   ensureEffect,
   get,
   getKramcoWandererChance,
@@ -375,7 +376,8 @@ export const LevelingQuest: Quest = {
         !have($item`cursed monkey's paw`) ||
         forbiddenEffects.includes($effect`Different Way of Seeing Things`) ||
         get("instant_saveMonkeysPaw", false) ||
-        myBasestat($stat`Mysticality`) >= targetBaseMyst - 15,
+        myBasestat($stat`Mysticality`) >= targetBaseMyst - 15 ||
+        !CommunityService.CoilWire.isDone(), // do after coil wire to prevent wasting wish
       do: () => wishFor($effect`Different Way of Seeing Things`, false),
     },
     {
