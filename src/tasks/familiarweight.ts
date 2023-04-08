@@ -54,6 +54,7 @@ export const FamiliarWeightQuest: Quest = {
           $effect`Fidoxene`,
           $effect`Leash of Linguini`,
           $effect`Puzzle Champ`,
+          $effect`Robot Friends`,
         ];
         usefulEffects.forEach((ef) => tryAcquiringEffect(ef, true));
 
@@ -66,6 +67,14 @@ export const FamiliarWeightQuest: Quest = {
           if (have($familiar`Mini-Trainbot`)) useFamiliar($familiar`Mini-Trainbot`);
           else useFamiliar($familiar`Exotic Parrot`);
           use($item`box of Familiar Jacks`, 1);
+          cliExecute("maximize familiar weight");
+        }
+        if (
+          have($familiar`Mini-Trainbot`) &&
+          have($item`overloaded Yule battery`) &&
+          !get("instant_saveClipArt", false)
+        ) {
+          useFamiliar($familiar`Mini-Trainbot`);
           cliExecute("maximize familiar weight");
         }
       },
