@@ -338,6 +338,20 @@ export const LevelingQuest: Quest = {
       limit: { tries: 1 },
     },
     {
+      name: "Pull overloaded Yule battery",
+      completed: () =>
+        have($item`overloaded Yule battery`) ||
+        storageAmount($item`overloaded Yule battery`) < 1 ||
+        get("_roninStoragePulls")
+          .split(",")
+          .includes(toInt($item`overloaded Yule battery`).toString()) ||
+        get("_roninStoragePulls").split(",").length >= 5,
+      do: (): void => {
+        takeStorage($item`overloaded Yule battery`, 1);
+      },
+      limit: { tries: 1 },
+    },
+    {
       name: "Pull Stick-Knife of Loathing",
       completed: () =>
         have($item`Stick-Knife of Loathing`) ||
@@ -1009,7 +1023,7 @@ export const LevelingQuest: Quest = {
     {
       name: "Powerlevel",
       completed: () =>
-        myBasestat($stat`Mysticality`) >= 175 &&
+        myBasestat($stat`Mysticality`) >= 150 &&
         (haveCBBIngredients() ||
           craftedCBBEffects.some((ef) => have(ef)) ||
           craftedCBBEffects.every((ef) => forbiddenEffects.includes(ef))) &&
