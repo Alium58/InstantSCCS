@@ -491,8 +491,7 @@ export const RunStartQuest: Quest = {
         if (get("_snokebombUsed") === 0) restoreMp(50);
         if (haveEquipped($item`miniature crystal ball`)) equip($slot`familiar`, $item.none);
       },
-      completed: () =>
-        have($item`cherry`) && !have($item`cosmic bowling ball`) && get("_snokebombUsed") >= 1,
+      completed: () => have($item`cherry`),
       do: $location`The Skeleton Store`,
       combat: new CombatStrategy().macro(
         Macro.if_($monster`novelty tropical skeleton`, Macro.tryItem($item`yellow rocket`))
