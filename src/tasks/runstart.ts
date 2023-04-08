@@ -165,7 +165,7 @@ export const RunStartQuest: Quest = {
         }
       },
       outfit: { modifier: "myst, mp" },
-    },
+    } /*
     {
       name: "Borrowed Time",
       prepare: (): void => {
@@ -186,7 +186,7 @@ export const RunStartQuest: Quest = {
         use($item`borrowed time`, 1);
       },
       limit: { tries: 1 },
-    },
+    },*/,
     {
       name: "Numberology",
       ready: () => Object.keys(reverseNumberology()).includes("69"),
