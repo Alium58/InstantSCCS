@@ -174,7 +174,7 @@ export const MoxieQuest: Quest = {
         }
         ensureEffect($effect`Expert Oiliness`);
         const usefulEffects: Effect[] = [
-          // $effect`Amazing`,
+          $effect`Amazing`,
           $effect`Big`,
           $effect`Blessing of the Bird`,
           $effect`Blubbered Up`,

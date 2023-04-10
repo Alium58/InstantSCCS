@@ -136,7 +136,7 @@ export const HotResQuest: Quest = {
           use($item`box of Familiar Jacks`, 1);
         }
         const usefulEffects: Effect[] = [
-          $effect`Amazing`,
+          //$effect`Amazing`,
           $effect`Astral Shell`,
           $effect`Elemental Saucesphere`,
           $effect`Feeling Peaceful`,
