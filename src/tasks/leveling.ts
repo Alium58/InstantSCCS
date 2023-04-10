@@ -27,6 +27,7 @@ import {
   myMaxmp,
   myMeat,
   myMp,
+  myPrimestat,
   mySoulsauce,
   print,
   putCloset,
@@ -423,12 +424,14 @@ export const LevelingQuest: Quest = {
       },
       completed: () => !have($item`a ten-percent bonus`),
       do: () => use($item`a ten-percent bonus`, 1),
+      outfit: { modifier: `${myPrimestat()} experience, 50 ${myPrimestat()} experience percent` },
       limit: { tries: 1 },
     },
     {
       name: "Bastille",
       completed: () => get("_bastilleGames") > 0 || !have($item`Bastille Battalion control rig`),
       do: () => cliExecute("bastille.ash mainstat brutalist"),
+      outfit: { modifier: `${myPrimestat()} experience, 50 ${myPrimestat()} experience percent` },
       limit: { tries: 1 },
     },
     {
@@ -460,6 +463,23 @@ export const LevelingQuest: Quest = {
         get("_grimoireConfiscatorSummons") > 0 || !have($skill`Summon Confiscated Things`),
       do: () => useSkill($skill`Summon Confiscated Things`),
       limit: { tries: 1 },
+    },
+    {
+      name: "Oliver's Place",
+      prepare: (): void => {
+        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
+        unbreakableUmbrella();
+        restoreMp(50);
+      },
+      completed: () => get("_speakeasyFreeFights", 0) >= 3 || !get("ownsSpeakeasy"),
+      do: $location`An Unusually Quiet Barroom Brawl`,
+      combat: new CombatStrategy().macro(Macro.default()),
+      outfit: baseOutfit,
+      limit: { tries: 3 },
+      post: (): void => {
+        sendAutumnaton();
+        sellMiscellaneousItems();
+      },
     },
     {
       name: "Eat Calzone",
@@ -657,7 +677,8 @@ export const LevelingQuest: Quest = {
           if (myMeat() >= 250) buy($item`red rocket`, 1);
         }
       },
-      completed: () => have($effect`Everything Looks Blue`),
+      completed: () =>
+        have($effect`Everything Looks Blue`) || myMp() > 0.75 * myMaxmp() || myMp() > 500,
       do: powerlevelingLocation(), // if your powerleveling location is the NEP you don't immediately get the MP regen
       combat: new CombatStrategy().macro(
         Macro.tryItem($item`blue rocket`)
@@ -920,23 +941,6 @@ export const LevelingQuest: Quest = {
         if (have($effect`Beaten Up`)) cliExecute("hottub");
         if (have($item`LOV Extraterrestrial Chocolate`))
           use($item`LOV Extraterrestrial Chocolate`, 1);
-        sendAutumnaton();
-        sellMiscellaneousItems();
-      },
-    },
-    {
-      name: "Oliver's Place",
-      prepare: (): void => {
-        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
-        unbreakableUmbrella();
-        restoreMp(50);
-      },
-      completed: () => get("_speakeasyFreeFights", 0) >= 3 || !get("ownsSpeakeasy"),
-      do: $location`An Unusually Quiet Barroom Brawl`,
-      combat: new CombatStrategy().macro(Macro.default()),
-      outfit: baseOutfit,
-      limit: { tries: 3 },
-      post: (): void => {
         sendAutumnaton();
         sellMiscellaneousItems();
       },
