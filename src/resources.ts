@@ -1,4 +1,4 @@
-import { Effect, print, printHtml, toEffect } from "kolmafia";
+import { Effect, Familiar, print, printHtml, toEffect, toInt } from "kolmafia";
 import { $effect, $effects, get, set } from "libram";
 
 class Resource {
@@ -150,6 +150,7 @@ const resources: Resource[] = [
     () => "Do not attempt to grab a li'l ninja costume for your tot"
   ),
   new Resource("instant_saveGarden", () => "Do not harvest your garden"),
+  new Resource("instant_saveMoonTune", () => "Do not tune the moon for familiar weight test"),
 ];
 
 const automaticallyExcludedBuffs = Array.from(
@@ -182,6 +183,13 @@ export function checkResources(): void {
   print();
   print("The following are all the buffs we will not acquire in run:");
   forbiddenEffects.forEach((ef) => print(`- ${ef.name}`));
+  print("The following are all the familliars we will not use during leveling:");
+  const excludedFamiliars = get("instant_explicitlyExcludedFamiliars")
+    .split(",")
+    .map((i) => toInt(i));
+  Familiar.all()
+    .filter((fam) => excludedFamiliars.includes(toInt(fam)))
+    .forEach((fam) => print(`- ${fam}`));
   print();
   print("Type 'set <prefname>=<true/false(/or number)>' in the CLI to set your preferences");
   print(
@@ -189,5 +197,8 @@ export function checkResources(): void {
   );
   print("(e.g. 'set instant_explicitlyExcludedBuffs=2106' to exclude substats.enh (id = 2106)");
   print("without excluding acquiring items.enh from the Source Terminal)");
+  print(
+    "Type 'set instant_explicitlyExcludedFamiliars=<fam_id1>,...,<fam_idn>' to exclude using specific familiars during leveling"
+  );
   print("Type 'ash remove_property(\"<prefname>\")' to delete a preference");
 }

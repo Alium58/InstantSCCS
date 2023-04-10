@@ -14,7 +14,7 @@ import {
 import { Quest } from "../engine/task";
 import { logTestSetup, tryAcquiringEffect } from "../lib";
 import Macro from "../combat";
-import { sugarItemsAboutToBreak } from "../engine/outfit";
+import { chooseHeaviestFamiliar, sugarItemsAboutToBreak } from "../engine/outfit";
 
 export const FamiliarWeightQuest: Quest = {
   name: "Familiar Weight",
@@ -42,6 +42,22 @@ export const FamiliarWeightQuest: Quest = {
       limit: { tries: 1 },
     },
     {
+      name: "Tune Moon to Platypus",
+      completed: () =>
+        !have($item`hewn moon-rune spoon`) ||
+        get("moonTuned") ||
+        get("instant_saveMoonTune", false),
+      do: (): void => {
+        cliExecute("spoon platypus");
+      },
+    },
+    {
+      name: "Fold Burning Newspaper",
+      completed: () => !have($item`burning newspaper`),
+      do: () => cliExecute("create burning paper crane"),
+      limit: { tries: 1 },
+    },
+    {
       name: "Test",
       completed: () => CommunityService.FamiliarWeight.isDone(),
       prepare: (): void => {
@@ -55,6 +71,7 @@ export const FamiliarWeightQuest: Quest = {
           $effect`Leash of Linguini`,
           $effect`Puzzle Champ`,
           $effect`Robot Friends`,
+          $effect`Shortly Stacked`,
         ];
         usefulEffects.forEach((ef) => tryAcquiringEffect(ef, true));
 
@@ -95,7 +112,7 @@ export const FamiliarWeightQuest: Quest = {
           maxTurns
         );
       },
-      outfit: { modifier: "familiar weight", familiar: $familiar`Cookbookbat` },
+      outfit: () => ({ modifier: "familiar weight", familiar: chooseHeaviestFamiliar() }),
       limit: { tries: 1 },
     },
   ],
