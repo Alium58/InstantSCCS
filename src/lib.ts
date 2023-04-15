@@ -2,8 +2,10 @@ import {
   cliExecute,
   Effect,
   getCampground,
+  holiday,
   Item,
   itemAmount,
+  monkeyPaw,
   mpCost,
   myBasestat,
   myBuffedstat,
@@ -12,12 +14,10 @@ import {
   print,
   restoreMp,
   retrieveItem,
-  runChoice,
   toItem,
   toSkill,
   toStat,
   use,
-  visitUrl,
 } from "kolmafia";
 import { $effect, $item, $items, $stat, CommunityService, get, have, set } from "libram";
 import { printModtrace } from "libram/dist/modifier";
@@ -90,13 +90,18 @@ export function tryAcquiringEffect(ef: Effect, tryRegardless = false): void {
 
   if (ef === $effect`Sparkling Consciousness`) {
     // This has no ef.default for some reason
-    if (!get("_fireworkUsed") && retrieveItem($item`sparkler`, 1)) use($item`sparkler`, 1);
+    if (holiday() === "Dependence Day" && !get("_fireworkUsed") && retrieveItem($item`sparkler`, 1))
+      use($item`sparkler`, 1);
     return;
   }
   if (!ef.default) return; // No way to acquire?
 
   if (ef === $effect`Ode to Booze`) restoreMp(60);
-  if (tryRegardless || canAcquireEffect(ef)) cliExecute(ef.default.replace(/cast 1 /g, "cast "));
+  if (tryRegardless || canAcquireEffect(ef)) {
+    const efDefault = ef.default;
+    if (efDefault.split(" ")[0] === "cargo") return; // Don't acquire effects with cargo (items are usually way more useful)
+    cliExecute(efDefault.replace(/cast 1 /g, "cast "));
+  }
 }
 
 export function canAcquireEffect(ef: Effect): boolean {
@@ -119,7 +124,7 @@ export function canAcquireEffect(ef: Effect): boolean {
         case "cast":
           return have(toSkill(target)) && myMp() >= mpCost(toSkill(target)); // We have the skill and can cast it
         case "cargo":
-          return have($item`Cargo Cultist Shorts`) && !get("_cargoPocketEmptied"); // We can grab it from our cargo pants
+          return false; // Don't acquire effects with cargo (items are usually way more useful)
         case "synthesize":
           return false; // We currently don't support sweet synthesis
         case "barrelprayer":
@@ -176,10 +181,7 @@ export function wishFor(ef: Effect, useGenie = true): void {
     !get("instant_saveMonkeysPaw", false) &&
     get("_monkeyPawWishesUsed", 0) <= 5
   ) {
-    cliExecute("main.php?action=cmonk&pwd");
-    runChoice(1, `wish=${ef.name}`);
-    visitUrl("main.php");
-    if (have(ef)) return;
+    if (monkeyPaw(ef)) return;
   }
 
   if (

@@ -68,6 +68,7 @@ export const farmingResourcePrefs: trackedPref[] = [
   new trackedPref("_deckCardsDrawn", "Deck Draws", 15),
   new trackedPref("_macrometeoriteUses", "Macrometeorites", 10),
   new trackedPref("_AAABatteriesUsed", "Batteries (AAA)", 7),
+  new trackedPref("_monkeyPawWishesUsed", "Monkey Paw Wishes", 5),
   new trackedPref("tomeSummons", "Tome Summons", 3),
   new trackedPref("_genieWishesUsed", "Genie Wishes", 3),
   new trackedPref("_pottedTeaTreeUsed", "Tea Tree", 3),
@@ -180,12 +181,16 @@ export class Engine extends BaseEngine {
   initPropertiesManager(manager: PropertiesManager): void {
     super.initPropertiesManager(manager);
     const tonic = "doc galaktik's invigorating tonic";
-    const mpItems = get("mpAutoRecoveryItems");
+    const mpItems = get("mpAutoRecoveryItems")
+      .split(";")
+      .filter((s) => s !== "sleep on your clan sofa")
+      .join(";");
     manager.set({
       hpAutoRecovery: -0.05,
       mpAutoRecovery: -0.05,
       maximizerCombinationLimit: 0,
       mpAutoRecoveryItems: `${mpItems}${mpItems.split(";").includes(tonic) ? "" : `;${tonic}`}`,
+      shadowLabyrinthGoal: "effects",
     });
   }
 }
