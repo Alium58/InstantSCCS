@@ -264,7 +264,7 @@ export const LevelingQuest: Quest = {
         takeStorage($item`Calzone of Legend`, 1);
       },
       limit: { tries: 1 },
-    } /*
+    },
     {
       name: "Pull Pizza of Legend",
       completed: () =>
@@ -286,7 +286,7 @@ export const LevelingQuest: Quest = {
         takeStorage($item`Pizza of Legend`, 1);
       },
       limit: { tries: 1 },
-    },*/,
+    },
     {
       name: "Pull Daypass",
       completed: () =>
@@ -324,20 +324,6 @@ export const LevelingQuest: Quest = {
       limit: { tries: 1 },
     },
     {
-      name: "Pull Stick-Knife of Loathing",
-      completed: () =>
-        have($item`Stick-Knife of Loathing`) ||
-        storageAmount($item`Stick-Knife of Loathing`) < 1 ||
-        get("_roninStoragePulls")
-          .split(",")
-          .includes(toInt($item`Stick-Knife of Loathing`).toString()) ||
-        get("_roninStoragePulls").split(",").length >= 5,
-      do: (): void => {
-        takeStorage($item`Stick-Knife of Loathing`, 1);
-      },
-      limit: { tries: 1 },
-    },
-    {
       name: "Pull Staff of the Deepest Freeze",
       completed: () =>
         have($item`Staff of the Deepest Freeze`) ||
@@ -350,7 +336,21 @@ export const LevelingQuest: Quest = {
         takeStorage($item`Staff of the Deepest Freeze`, 1);
       },
       limit: { tries: 1 },
-    },
+    } /*
+    {
+      name: "Pull Stick-Knife of Loathing",
+      completed: () =>
+        have($item`Stick-Knife of Loathing`) ||
+        storageAmount($item`Stick-Knife of Loathing`) < 1 ||
+        get("_roninStoragePulls")
+          .split(",")
+          .includes(toInt($item`Stick-Knife of Loathing`).toString()) ||
+        get("_roninStoragePulls").split(",").length >= 5,
+      do: (): void => {
+        takeStorage($item`Stick-Knife of Loathing`, 1);
+      },
+      limit: { tries: 1 },
+    },*/,
     {
       name: "Wish for XP% buff",
       // TODO: Make this completed if we've already wished twice with the paw (requires mafia tracking)
