@@ -10,7 +10,16 @@ import {
   spleenLimit,
   turnsPlayed,
 } from "kolmafia";
-import { $effect, $effects, CommunityService, get, have, sumNumbers, uneffect } from "libram";
+import {
+  $effect,
+  $effects,
+  $item,
+  CommunityService,
+  get,
+  have,
+  sumNumbers,
+  uneffect,
+} from "libram";
 import {
   farmingResourcePrefs,
   freeBanishPrefs,
@@ -66,11 +75,31 @@ function logResourceUsage(): void {
     print("");
   });
 
+  print(
+    `Pulls Used: ${get("_roninStoragePulls")
+      .split(",")
+      .map((id) => $item`${id}`.name)
+      .join(", ")}`
+  );
+  print("");
+
   // Organs Used
   print("Organs Used:");
-  print(`Stomach: ${myFullness()}/${fullnessLimit()}`);
-  print(`Liver: ${myInebriety()}/${inebrietyLimit()}`);
-  print(`Spleen: ${mySpleenUse()}/${spleenLimit()}`);
+  print(
+    `Stomach: ${myFullness()}/${fullnessLimit()} ${get("_instant_fullness", "")
+      .split(",")
+      .join(", ")}`
+  );
+  print(
+    `Liver: ${myInebriety()}/${inebrietyLimit()} ${get("_instant_inebriety", "")
+      .split(",")
+      .join(", ")}`
+  );
+  print(
+    `Spleen: ${mySpleenUse()}/${spleenLimit()} ${get("_instant_spleenUse", "")
+      .split(",")
+      .join(", ")}`
+  );
   print(
     `Sweat Remaining: ${get("sweat")}/100, Sweat Out Some Booze: ${get("_sweatOutSomeBoozeUsed")}/3`
   );

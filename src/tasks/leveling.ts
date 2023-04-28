@@ -731,7 +731,9 @@ export const LevelingQuest: Quest = {
     },
     {
       name: "Use Ointment of the Occult",
-      completed: () => have($effect`Mystically Oiled`),
+      completed: () =>
+        (!have($item`grapefruit`) && !have($item`ointment of the occult`)) ||
+        have($effect`Mystically Oiled`),
       do: (): void => {
         if (!have($item`ointment of the occult`)) {
           if (get("reagentSummons") === 0) useSkill($skill`Advanced Saucecrafting`, 1);
