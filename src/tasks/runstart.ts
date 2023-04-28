@@ -451,6 +451,8 @@ export const RunStartQuest: Quest = {
           if (myMeat() < 250) throw new Error("Insufficient Meat to purchase yellow rocket!");
           buy($item`yellow rocket`, 1);
         }
+        if (have($item`Jurassic Parka`) && get("parkaMode") !== "dilophosaur")
+          cliExecute("parka dilophosaur");
         unbreakableUmbrella();
         if (haveEquipped($item`miniature crystal ball`)) equip($slot`familiar`, $item.none);
       },
@@ -469,11 +471,15 @@ export const RunStartQuest: Quest = {
         })(),
       do: () => mapMonster($location`The Skeleton Store`, $monster`novelty tropical skeleton`),
       combat: new CombatStrategy().macro(
-        Macro.if_($monster`novelty tropical skeleton`, Macro.tryItem($item`yellow rocket`)).abort()
+        Macro.if_(
+          $monster`novelty tropical skeleton`,
+          Macro.trySkill($skill`Spit jurassic acid`).tryItem($item`yellow rocket`)
+        ).abort()
       ),
       outfit: (): OutfitSpec => {
         return {
           offhand: $item`unbreakable umbrella`,
+          shirt: $item`Jurassic Parka`,
           acc1: $item`codpiece`,
           familiar: chooseFamiliar(false),
           modifier:
