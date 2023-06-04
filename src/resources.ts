@@ -1,4 +1,4 @@
-import { Effect, Familiar, print, printHtml, toEffect, toInt } from "kolmafia";
+import { Effect, Familiar, print, printHtml, toEffect, toInt, totalFreeRests } from "kolmafia";
 import { $effect, $effects, get, set } from "libram";
 
 class Resource {
@@ -151,6 +151,23 @@ const resources: Resource[] = [
   ),
   new Resource("instant_saveGarden", () => "Do not harvest your garden"),
   new Resource("instant_saveMoonTune", () => "Do not tune the moon for familiar weight test"),
+  new Resource("instant_saveCinch", () => "Do not spend any cinch for leveling"),
+  new Resource(
+    "instant_saveFreeRests",
+    (n) => `Save ${n}/${totalFreeRests()} free rests (set a number)`,
+    [],
+    get("instant_saveFreeRests", false) ? totalFreeRests() : 0
+  ),
+  new Resource(
+    "instant_saveCatalogCredits",
+    (n) => `Save ${n}/3 Mr. Store Catalog Credits (set a number)`,
+    [],
+    get("instant_saveCatalogCredits", false) ? 3 : 0
+  ),
+  new Resource(
+    "instant_skipHighHeels",
+    () => "Do not grab red-soled high heels from the Mr. Store Catalog"
+  ),
 ];
 
 const automaticallyExcludedBuffs = Array.from(

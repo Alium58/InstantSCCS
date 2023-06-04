@@ -4,12 +4,12 @@ import { $item, $skill, get, have, StrictMacro } from "libram";
 export const mainStat = myClass().primestat;
 
 export default class Macro extends StrictMacro {
-  kill(): Macro {
-    return this.trySkill($skill`Curse of Weaksauce`)
-      .if_(
-        `!mpbelow ${mpCost($skill`Stuffed Mortar Shell`)}`,
-        Macro.trySkill($skill`Stuffed Mortar Shell`)
-      )
+  kill(useCinch = false): Macro {
+    const macroHead = this.trySkill($skill`Curse of Weaksauce`).if_(
+      `!mpbelow ${mpCost($skill`Stuffed Mortar Shell`)}`,
+      Macro.trySkill($skill`Stuffed Mortar Shell`)
+    );
+    return (useCinch ? macroHead.trySkill($skill`Cincho: Confetti Extravaganza`) : macroHead)
       .while_(
         `!mpbelow ${mpCost($skill`Saucegeyser`)} && hasskill ${toInt($skill`Saucegeyser`)}`,
         Macro.skill($skill`Saucegeyser`)
@@ -26,12 +26,12 @@ export default class Macro extends StrictMacro {
     return new Macro().kill();
   }
 
-  default(): Macro {
-    return this.kill();
+  default(useCinch = false): Macro {
+    return this.kill(useCinch);
   }
 
-  static default(): Macro {
-    return new Macro().default();
+  static default(useCinch = false): Macro {
+    return new Macro().default(useCinch);
   }
 }
 
