@@ -38,6 +38,11 @@ const resources: Resource[] = [
   new Resource("instant_saveAbstraction", "Do not pull an Abstraction: Category"),
   new Resource("instant_savePerfectFreeze", "Do not craft and drink a perfect drink"),
   new Resource(
+    "instant_savePizzaOfLegend",
+    "Do not pull or eat a Pizza of Legend",
+    $effects`Endless Drool`
+  ),
+  new Resource(
     "instant_saveHoneyBun",
     "Do not eat a Honey Bun of Boris for the stats test",
     $effects`Motherly Loved`

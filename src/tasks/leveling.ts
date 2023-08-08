@@ -319,7 +319,8 @@ export const LevelingQuest: Quest = {
         get("_roninStoragePulls")
           .split(",")
           .includes(toInt($item`Pizza of Legend`).toString()) ||
-        get("_instant_skipPizzaOfLegend", false),
+        get("_instant_skipPizzaOfLegend", false) ||
+        get("instant_savePizzaOfLegend", false),
       do: (): void => {
         if (storageAmount($item`Pizza of Legend`) === 0) {
           print("Uh oh! You do not seem to have a Pizza of Legend in Hagnk's", "red");
@@ -352,6 +353,48 @@ export const LevelingQuest: Quest = {
         }
         takeStorage($item`one-day ticket to Dinseylandfill`, 1);
         use($item`one-day ticket to Dinseylandfill`, 1);
+      },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Pull overloaded Yule battery",
+      completed: () =>
+        have($item`overloaded Yule battery`) ||
+        storageAmount($item`overloaded Yule battery`) < 1 ||
+        get("_roninStoragePulls")
+          .split(",")
+          .includes(toInt($item`overloaded Yule battery`).toString()) ||
+        get("_roninStoragePulls").split(",").length >= 5,
+      do: (): void => {
+        takeStorage($item`overloaded Yule battery`, 1);
+      },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Pull Staff of the Deepest Freeze",
+      completed: () =>
+        have($item`Staff of the Deepest Freeze`) ||
+        storageAmount($item`Staff of the Deepest Freeze`) < 1 ||
+        get("_roninStoragePulls")
+          .split(",")
+          .includes(toInt($item`Staff of the Deepest Freeze`).toString()) ||
+        get("_roninStoragePulls").split(",").length >= 5,
+      do: (): void => {
+        takeStorage($item`Staff of the Deepest Freeze`, 1);
+      },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Pull Stick-Knife of Loathing",
+      completed: () =>
+        have($item`Stick-Knife of Loathing`) ||
+        storageAmount($item`Stick-Knife of Loathing`) < 1 ||
+        get("_roninStoragePulls")
+          .split(",")
+          .includes(toInt($item`Stick-Knife of Loathing`).toString()) ||
+        get("_roninStoragePulls").split(",").length >= 5,
+      do: (): void => {
+        takeStorage($item`Stick-Knife of Loathing`, 1);
       },
       limit: { tries: 1 },
     },
