@@ -98,6 +98,9 @@ export const FamiliarWeightQuest: Quest = {
           }
 
           cliExecute("maximize familiar weight");
+        } else if (have($familiar`Mini-Trainbot`)) {
+          useFamiliar($familiar`Mini-Trainbot`);
+          cliExecute("maximize familiar weight");
         }
       },
       do: (): void => {
@@ -117,7 +120,7 @@ export const FamiliarWeightQuest: Quest = {
           maxTurns
         );
       },
-      outfit: () => ({ modifier: "familiar weight", familiar: chooseHeaviestFamiliar() }),
+      outfit: () => ({ modifier: "familiar weight", familiar: $familiar`Mini-Trainbot` }),
       limit: { tries: 1 },
     },
   ],
