@@ -71,6 +71,7 @@ export const FamiliarWeightQuest: Quest = {
           $effect`Leash of Linguini`,
           $effect`Puzzle Champ`,
           $effect`Shortly Stacked`,
+          $effect`Robot Friends`,
         ];
         usefulEffects.forEach((ef) => tryAcquiringEffect(ef, true));
 
