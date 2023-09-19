@@ -1,6 +1,26 @@
 import { Quest } from "../engine/task";
-import { buy, cliExecute, Effect, print, runChoice, visitUrl } from "kolmafia";
-import { $effect, $familiar, $item, CommunityService, get, have, uneffect } from "libram";
+import {
+  buy,
+  cliExecute,
+  Effect,
+  equippedItem,
+  numericModifier,
+  print,
+  runChoice,
+  useSkill,
+  visitUrl,
+} from "kolmafia";
+import {
+  $effect,
+  $familiar,
+  $item,
+  $skill,
+  $slot,
+  CommunityService,
+  get,
+  have,
+  uneffect,
+} from "libram";
 import { logTestSetup, tryAcquiringEffect, wishFor } from "../lib";
 import { CombatStrategy } from "grimoire-kolmafia";
 import Macro from "../combat";
@@ -27,6 +47,16 @@ export const NoncombatQuest: Quest = {
         1500: 2,
       },
       combat: new CombatStrategy().macro(Macro.abort()),
+      limit: { tries: 1 },
+    },
+    {
+      name: "Favorite Bird (NC)",
+      completed: () =>
+        !have($skill`Visit your Favorite Bird`) ||
+        get("_favoriteBirdVisited") ||
+        !get("yourFavoriteBirdMods").includes("Combat Frequency") ||
+        get("instant_saveFavoriteBird", false),
+      do: () => useSkill($skill`Visit your Favorite Bird`),
       limit: { tries: 1 },
     },
     {
@@ -59,6 +89,16 @@ export const NoncombatQuest: Quest = {
         ];
         usefulEffects.forEach((ef) => tryAcquiringEffect(ef, true));
         cliExecute("maximize -combat"); // To avoid maximizer bug, we invoke this once more
+
+        if (
+          have($skill`Aug. 13th: Left/Off Hander's Day!`) &&
+          !get("instant_saveAugustScepter", false) &&
+          numericModifier(equippedItem($slot`off-hand`), "Combat Rate") < 0 &&
+          CommunityService.Noncombat.actualCost() > 1
+        ) {
+          tryAcquiringEffect($effect`Offhand Remarkable`);
+        }
+
         // If it saves us >= 6 turns, try using a wish
         if (CommunityService.Noncombat.actualCost() >= 7) wishFor($effect`Disquiet Riot`);
       },

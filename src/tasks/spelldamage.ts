@@ -4,13 +4,18 @@ import {
   drink,
   Effect,
   elementalResistance,
+  equip,
+  equippedItem,
   inebrietyLimit,
   myAdventures,
   myHp,
   myInebriety,
   myMaxhp,
+  numericModifier,
   print,
   restoreHp,
+  restoreMp,
+  retrieveItem,
   useSkill,
 } from "kolmafia";
 import {
@@ -22,14 +27,17 @@ import {
   $items,
   $location,
   $skill,
+  $slot,
+  clamp,
+  Clan,
   CommunityService,
   get,
   have,
 } from "libram";
 import { Quest } from "../engine/task";
-import { logTestSetup, tryAcquiringEffect } from "../lib";
-import Macro from "../combat";
-import { sugarItemsAboutToBreak } from "../engine/outfit";
+import { logTestSetup, startingClan, tryAcquiringEffect } from "../lib";
+import Macro, { haveFreeBanish, haveMotherSlimeBanish } from "../combat";
+import { chooseFamiliar, sugarItemsAboutToBreak } from "../engine/outfit";
 import { forbiddenEffects } from "../resources";
 
 let triedDeepDark = false;
@@ -45,6 +53,57 @@ export const SpellDamageQuest: Quest = {
       limit: { tries: 1 },
     },
     {
+      name: "Carol Ghost Buff",
+      prepare: (): void => {
+        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
+        restoreMp(50);
+      },
+      completed: () =>
+        !have($familiar`Ghost of Crimbo Carols`) ||
+        !haveFreeBanish() ||
+        $effects`Do You Crush What I Crush?, Holiday Yoked, Let It Snow/Boil/Stink/Frighten/Grease, All I Want For Crimbo Is Stuff, Crimbo Wrapping`.some(
+          (ef) => have(ef)
+        ),
+      do: $location`The Dire Warren`,
+      combat: new CombatStrategy().macro(Macro.banish().abort()),
+      outfit: {
+        offhand: $item`latte lovers member's mug`,
+        acc1: $item`Kremlin's Greatest Briefcase`,
+        acc2: $item`Lil' Doctor™ bag`,
+        familiar: $familiar`Ghost of Crimbo Carols`,
+        famequip: $item.none,
+      },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Inner Elf",
+      prepare: (): void => {
+        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
+        restoreMp(50);
+        Clan.join(get("instant_motherSlimeClan", ""));
+      },
+      completed: () =>
+        !have($familiar`Machine Elf`) ||
+        !haveMotherSlimeBanish() ||
+        have($effect`Inner Elf`) ||
+        get("instant_motherSlimeClan", "").length === 0,
+      do: $location`The Slime Tube`,
+      combat: new CombatStrategy().macro(
+        Macro.trySkill($skill`KGB tranquilizer dart`)
+          .trySkill($skill`Snokebomb`)
+          .abort()
+      ),
+      choices: { 326: 1 },
+      outfit: {
+        acc1: $item`Kremlin's Greatest Briefcase`,
+        acc2: $item`Eight Days a Week Pill Keeper`, // survive first hit if it occurs
+        familiar: $familiar`Machine Elf`,
+        modifier: "HP",
+      },
+      post: () => Clan.join(startingClan),
+      limit: { tries: 1 },
+    },
+    {
       name: "Meteor Shower",
       completed: () =>
         have($effect`Meteor Showered`) ||
@@ -54,12 +113,13 @@ export const SpellDamageQuest: Quest = {
       do: $location`The Dire Warren`,
       combat: new CombatStrategy().macro(
         Macro.trySkill($skill`Meteor Shower`)
+          .trySkill($skill`%fn, spit on me!`)
           .trySkill($skill`Use the Force`)
           .abort()
       ),
       outfit: () => ({
         weapon: $item`Fourth of May Cosplay Saber`,
-        familiar: $familiar`Cookbookbat`,
+        familiar: get("camelSpit") >= 100 ? $familiar`Melodramedary` : chooseFamiliar(false),
         avoid: sugarItemsAboutToBreak(),
       }),
       choices: { 1387: 3 },
@@ -89,11 +149,17 @@ export const SpellDamageQuest: Quest = {
       name: "Test",
       prepare: (): void => {
         if (!have($item`obsidian nutcracker`)) buy($item`obsidian nutcracker`, 1);
+        if (
+          have($item`Ye Wizard's Shack snack voucher`) &&
+          !forbiddenEffects.includes($effect`Pisces in the Skyces`)
+        )
+          retrieveItem($item`tobiko marble soda`);
         const usefulEffects: Effect[] = [
           $effect`AAA-Charged`,
           $effect`Arched Eyebrow of the Archmage`,
           $effect`Carol of the Hells`,
           $effect`Cowrruption`,
+          $effect`Destructive Resolve`,
           $effect`Imported Strength`,
           $effect`Jackasses' Symphony of Destruction`,
           $effect`Mental A-cue-ity`,
@@ -115,6 +181,17 @@ export const SpellDamageQuest: Quest = {
           tryAcquiringEffect($effect`Ode to Booze`);
           drink(wines.filter((booze) => have(booze))[0], 1);
         }
+
+        if (
+          have($skill`Aug. 13th: Left/Off Hander's Day!`) &&
+          !get("instant_saveAugustScepter", false) &&
+          numericModifier(equippedItem($slot`off-hand`), "Spell Damage") +
+            numericModifier(equippedItem($slot`off-hand`), "Spell Damage Percent") >
+            0 &&
+          CommunityService.SpellDamage.actualCost() > 1
+        ) {
+          tryAcquiringEffect($effect`Offhand Remarkable`);
+        }
       },
       completed: () => CommunityService.SpellDamage.isDone(),
       do: (): void => {
@@ -135,6 +212,10 @@ export const SpellDamageQuest: Quest = {
         );
       },
       outfit: { modifier: "spell dmg, switch disembodied hand, -switch left-hand man" },
+      post: (): void => {
+        if (have($skill`Spirit of Nothing`)) useSkill($skill`Spirit of Nothing`);
+        if (have($familiar`Left-Hand Man`)) equip($familiar`Left-Hand Man`, $item.none);
+      },
       limit: { tries: 1 },
     },
   ],

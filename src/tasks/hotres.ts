@@ -10,6 +10,7 @@ import {
   print,
   use,
   useFamiliar,
+  useSkill,
 } from "kolmafia";
 import {
   $effect,
@@ -26,7 +27,7 @@ import {
 } from "libram";
 import { Quest } from "../engine/task";
 import { logTestSetup, tryAcquiringEffect, wishFor } from "../lib";
-import { sugarItemsAboutToBreak } from "../engine/outfit";
+import { chooseFamiliar, sugarItemsAboutToBreak } from "../engine/outfit";
 import Macro from "../combat";
 
 export const HotResQuest: Quest = {
@@ -50,7 +51,7 @@ export const HotResQuest: Quest = {
         offhand: have($skill`Double-Fisted Skull Smashing`)
           ? $item`industrial fire extinguisher`
           : undefined,
-        familiar: $familiar`Cookbookbat`,
+        familiar: chooseFamiliar(false),
         modifier: "Item Drop",
         avoid: sugarItemsAboutToBreak(),
       }),
@@ -120,6 +121,16 @@ export const HotResQuest: Quest = {
       limit: { tries: 1 },
     },
     {
+      name: "Favorite Bird (Hot Res)",
+      completed: () =>
+        !have($skill`Visit your Favorite Bird`) ||
+        get("_favoriteBirdVisited") ||
+        !get("yourFavoriteBirdMods").includes("Hot Resistance") ||
+        get("instant_saveFavoriteBird", false),
+      do: () => useSkill($skill`Visit your Favorite Bird`),
+      limit: { tries: 1 },
+    },
+    {
       name: "Test",
       prepare: (): void => {
         cliExecute("retrocape vampire hold");
@@ -130,16 +141,7 @@ export const HotResQuest: Quest = {
           !get("instant_saveKGBClicks", false)
         )
           cliExecute("briefcase e hot");
-        if (
-          have($skill`Summon Clip Art`) &&
-          !get("instant_saveClipArt", false) &&
-          have($familiar`Exotic Parrot`) &&
-          !have($item`cracker`)
-        ) {
-          if (!have($item`box of Familiar Jacks`)) create($item`box of Familiar Jacks`, 1);
-          useFamiliar($familiar`Exotic Parrot`);
-          use($item`box of Familiar Jacks`, 1);
-        }
+
         const usefulEffects: Effect[] = [
           $effect`Astral Shell`,
           $effect`Egged On`,
@@ -155,8 +157,21 @@ export const HotResQuest: Quest = {
         ];
         usefulEffects.forEach((ef) => tryAcquiringEffect(ef, true));
         cliExecute("maximize hot res");
+
         // If it saves us >= 6 turns, try using a wish
         if (CommunityService.HotRes.actualCost() >= 7) wishFor($effect`Fireproof Lips`);
+
+        if (
+          CommunityService.HotRes.actualCost() > 1 &&
+          have($skill`Summon Clip Art`) &&
+          !get("instant_saveClipArt", false) &&
+          have($familiar`Exotic Parrot`) &&
+          !have($item`cracker`)
+        ) {
+          if (!have($item`box of Familiar Jacks`)) create($item`box of Familiar Jacks`, 1);
+          useFamiliar($familiar`Exotic Parrot`);
+          use($item`box of Familiar Jacks`, 1);
+        }
       },
       completed: () => CommunityService.HotRes.isDone(),
       do: (): void => {

@@ -2,6 +2,9 @@ import {
   cliExecute,
   Effect,
   getCampground,
+  getClanName,
+  gitInfo,
+  haveEffect,
   holiday,
   Item,
   itemAmount,
@@ -9,23 +12,46 @@ import {
   mpCost,
   myBasestat,
   myBuffedstat,
+  myLevel,
   myMaxhp,
   myMp,
   print,
   restoreMp,
   retrieveItem,
   retrievePrice,
+  Skill,
   sweetSynthesis,
   toInt,
   toItem,
   toSkill,
   toStat,
   use,
+  useSkill,
+  visitUrl,
 } from "kolmafia";
-import { $effect, $familiar, $item, $items, $stat, CommunityService, get, have, set } from "libram";
+import {
+  $effect,
+  $familiar,
+  $item,
+  $items,
+  $monster,
+  $skill,
+  $skills,
+  $stat,
+  CombatLoversLocket,
+  CommunityService,
+  get,
+  getKramcoWandererChance,
+  have,
+  set,
+  sumNumbers,
+  Witchess,
+} from "libram";
 import { printModtrace } from "libram/dist/modifier";
 import { forbiddenEffects } from "./resources";
 import { mainStat } from "./combat";
+
+export const startingClan = getClanName();
 
 export const testModifiers = new Map([
   [CommunityService.HP, ["Maximum HP", "Maximum HP Percent", "Muscle", "Muscle Percent"]],
@@ -40,6 +66,43 @@ export const testModifiers = new Map([
   [CommunityService.HotRes, ["Hot Resistance"]],
   [CommunityService.CoilWire, []],
 ]);
+
+export function checkGithubVersion(): void {
+  const gitBranches: { name: string; commit: { sha: string } }[] = JSON.parse(
+    visitUrl(`https://api.github.com/repos/Pantocyclus/InstantSCCS/branches`)
+  );
+  const releaseBranch = gitBranches.find((branchInfo) => branchInfo.name === "release");
+  const releaseSHA = releaseBranch?.commit.sha ?? "Not Found";
+  const localBranch = gitInfo("Pantocyclus-instantsccs-release");
+  const localSHA = localBranch.commit;
+  if (releaseSHA === localSHA) {
+    print("InstantSCCS is up to date!", "green");
+  } else {
+    print(
+      `InstantSCCS is out of date - your version was last updated on ${localBranch.last_changed_date}.`,
+      "red"
+    );
+    print("Please run 'git update'!", "red");
+    print(`Local Version: ${localSHA}.`);
+    print(`Release Version: ${releaseSHA}`);
+  }
+}
+
+export function simpleDateDiff(t1: string, t2: string): number {
+  // Returns difference in milliseconds
+  const yearDiff = toInt(t2.slice(0, 4)) - toInt(t1.slice(0, 4));
+  const monthDiff = 12 * yearDiff + toInt(t2.slice(4, 6)) - toInt(t1.slice(4, 6));
+  const dayDiff =
+    monthDiff * Math.max(toInt(t1.slice(6, 8)), toInt(t2.slice(6, 8))) +
+    toInt(t2.slice(6, 8)) -
+    toInt(t1.slice(6, 8));
+  const hourDiff = 24 * dayDiff + toInt(t2.slice(8, 10)) - toInt(t1.slice(8, 10));
+  const minDiff = 60 * hourDiff + toInt(t2.slice(10, 12)) - toInt(t1.slice(10, 12));
+  const secDiff = 60 * minDiff + toInt(t2.slice(12, 14)) - toInt(t1.slice(12, 14));
+  const msDiff = 1000 * secDiff + toInt(t2.slice(14)) - toInt(t1.slice(14));
+
+  return msDiff;
+}
 
 // From phccs
 export function convertMilliseconds(milliseconds: number): string {
@@ -134,7 +197,7 @@ export function canAcquireEffect(ef: Effect): boolean {
         case "barrelprayer":
           return get("barrelShrineUnlocked") && !get("_barrelPrayer");
         case "witchess":
-          return get("puzzleChampBonus") === 20 && !get("_witchessBuff");
+          return Witchess.have() && get("puzzleChampBonus") >= 20 && !get("_witchessBuff");
         case "telescope":
           return get("telescopeUpgrades") > 0 && !get("telescopeLookedHigh");
         case "beach":
@@ -188,19 +251,17 @@ export function wishFor(ef: Effect, useGenie = true): void {
     if (monkeyPaw(ef)) return;
   }
 
-  if (
-    have($item`genie bottle`) &&
-    !get("instant_saveGenie", false) &&
-    useGenie &&
-    get("_genieWishesUsed", 0) < 3
-  ) {
+  if (have($item`pocket wish`) && !get("instant_saveGenie", false) && useGenie) {
     cliExecute(`genie effect ${ef.name}`);
   }
 }
 
+export function overlevelled(): boolean {
+  return myLevel() >= 20;
+}
 export const targetBaseMyst = get("instant_targetBaseMyst", 190);
 export const targetBaseMystGap = get("instant_targetBaseMystGap", 15);
-export function haveCBBIngredients(fullCheck: boolean): boolean {
+export function haveCBBIngredients(fullCheck: boolean, verbose = false): boolean {
   if (!have($familiar`Cookbookbat`)) return true;
   let yeast = 0,
     vegetable = 0,
@@ -228,6 +289,11 @@ export function haveCBBIngredients(fullCheck: boolean): boolean {
     ) {
       whey += 1;
     }
+  }
+  if (verbose) {
+    print(`Still Looking for ${Math.max(0, yeast - itemAmount($item`Yeast of Boris`))} yeasts,
+    ${Math.max(0, vegetable - itemAmount($item`Vegetable of Jarlsberg`))} vegetables and
+    ${Math.max(0, whey - itemAmount($item`St. Sneaky Pete's Whey`))} wheys`);
   }
   return (
     itemAmount($item`Yeast of Boris`) >= yeast &&
@@ -299,4 +365,200 @@ export function getSynthExpBuff(): void {
   if (bestPair[0] === bestPair[1]) retrieveItem(bestPair[0], 2);
   else bestPair.forEach((it) => retrieveItem(it));
   sweetSynthesis(bestPair[0], bestPair[1]);
+}
+
+const allTomes = $skills`Summon Resolutions, Summon Love Song, Summon Candy Heart, Summon Taffy, Summon BRICKOs, Summon Party Favor, Summon Dice`;
+const availableTomes = allTomes.filter((tome) => have(tome));
+export function chooseLibram(): Skill {
+  const needLoveSong =
+    have($skill`Summon Love Song`) &&
+    itemAmount($item`love song of icy revenge`) +
+      Math.floor(haveEffect($effect`Cold Hearted`) / 5) <
+      4;
+  const needCandyHeart =
+    have($skill`Summon Candy Heart`) &&
+    ((!have($item`green candy heart`) && !have($effect`Heart of Green`)) ||
+      (!have($item`lavender candy heart`) && !have($effect`Heart of Lavender`)));
+
+  if (
+    have($skill`Summon Resolutions`) &&
+    ((!have($item`resolution: be happier`) && !have($effect`Joyful Resolve`)) ||
+      (!have($item`resolution: be feistier`) && !have($effect`Destructive Resolve`)))
+  ) {
+    return $skill`Summon Resolutions`;
+  } else if (needCandyHeart) {
+    return $skill`Summon Candy Heart`;
+  } else if (needLoveSong) {
+    return $skill`Summon Love Song`;
+  } else if (
+    have($skill`Summon Resolutions`) &&
+    !have($item`resolution: be kinder`) &&
+    !have($effect`Kindly Resolve`)
+  ) {
+    return $skill`Summon Resolutions`;
+  }
+  return availableTomes[0];
+}
+
+export function burnLibram(saveMp: number): void {
+  if (availableTomes.length === 0) return;
+  while (myMp() >= mpCost(chooseLibram()) + saveMp) {
+    useSkill(chooseLibram());
+  }
+}
+
+export function camelFightsLeft(): number {
+  // Only consider those free fights where we can use the camel
+  const shadowRift = have($item`closed-circuit pay phone`)
+    ? have($effect`Shadow Affinity`)
+      ? haveEffect($effect`Shadow Affinity`)
+      : get("_shadowAffinityToday")
+      ? 11
+      : 0
+    : 0;
+  const snojo = get("snojoAvailable") ? 10 - get("_snojoFreeFights") : 0;
+  const NEP = get("neverendingPartyAlways") ? 10 - get("_neverendingPartyFreeTurns") : 0;
+  const witchess = Witchess.have() ? 5 - get("_witchessFights") : 0;
+  const DMT = have($familiar`Machine Elf`) ? 5 - get("_machineTunnelsAdv") : 0;
+  const LOV = get("loveTunnelAvailable") && !get("_loveTunnelToday") ? 3 : 0;
+  const olivers = get("ownsSpeakeasy") ? 3 - get("_speakeasyFreeFights", 0) : 0;
+  const tentacle = get("_eldritchTentacleFought") ? 1 : 0;
+  const sausageGoblin = getKramcoWandererChance() >= 1.0 ? 1 : 0;
+  const XRay = have($item`Lil' Doctor™ bag`) ? 3 - get("_chestXRayUsed") : 0;
+  const shatteringPunch = have($skill`Shattering Punch`) ? 3 - get("_shatteringPunchUsed") : 0;
+  const mobHit = have($skill`Gingerbread Mob Hit`) && !get("_gingerbreadMobHitUsed") ? 1 : 0;
+  const locketedWitchess =
+    !Witchess.have() &&
+    CombatLoversLocket.availableLocketMonsters().includes($monster`Witchess King`) &&
+    !CombatLoversLocket.monstersReminisced().includes($monster`Witchess King`) &&
+    !get("instant_saveLocketWitchessKing", false)
+      ? 1
+      : 0;
+  const backups =
+    Witchess.have() || have($item`Kramco Sausage-o-Matic™`)
+      ? Math.max(11 - get("instant_saveBackups", 0) - get("_backUpUses"), 0)
+      : 0; // No guarantee that we hit a tentacle, so we ignore that here
+  // Currently does not consider gregs (require free banish + free fight source)
+
+  // Include guaranteed non-free fights
+  const noveltySkeleton = have($item`cherry`) || CommunityService.CoilWire.isDone() ? 0 : 1;
+  // Red skeleton is not guaranteed since we can't guarantee we run out of yellow ray by then
+
+  return sumNumbers([
+    shadowRift,
+    snojo,
+    NEP,
+    witchess,
+    DMT,
+    LOV,
+    olivers,
+    tentacle,
+    sausageGoblin,
+    XRay,
+    shatteringPunch,
+    mobHit,
+    locketedWitchess,
+    backups,
+    noveltySkeleton,
+  ]);
+}
+
+export function computeCombatFrequency(): number {
+  const vipHat = have($item`Clan VIP Lounge key`) ? -5 : 0;
+  const hat = vipHat;
+
+  const protopack = have($item`protonic accelerator pack`) ? -5 : 0;
+  const back = protopack;
+
+  const parka = have($item`Jurassic Parka`) ? -5 : 0;
+  const shirt = parka;
+
+  const umbrella = have($item`unbreakable umbrella`) ? -10 : 0;
+  const offhand = umbrella;
+
+  const pantogram =
+    have($item`portable pantogram`) && !get("instant_savePantogram", false) ? -5 : 0;
+  const pants = pantogram;
+
+  const kgb =
+    have($item`Kremlin's Greatest Briefcase`) && !get("instant_saveKGBClicks", false) ? -5 : 0;
+  const codpiece =
+    have($item`Clan VIP Lounge key`) && !get("instant_saveFloundry", false) ? -10 : 0;
+  const atlas = get("hasMaydayContract") && !get("instant_saveMayday", false) ? -5 : 0;
+  const accessories = sumNumbers([kgb, codpiece, atlas]);
+
+  const rose = -20;
+  const smoothMovements = have($skill`Smooth Movement`) ? -5 : 0;
+  const sonata = have($skill`The Sonata of Sneakiness`) ? -5 : 0;
+  const favoriteBird =
+    have($item`Bird-a-Day calendar`) &&
+    get("yourFavoriteBirdMods").includes("Combat Frequency") &&
+    !get("instant_saveFavoriteBird", false)
+      ? toInt(
+          get("yourFavoriteBirdMods")
+            .split(", ")
+            .filter((s) => s.includes("Combat Frequency"))
+            .join("")
+            .split(": ")[1]
+        )
+      : 0;
+  const shadowWaters = have($item`closed-circuit pay phone`) ? -10 : 0;
+  const powerfulGlove =
+    have($item`Powerful Glove`) && !forbiddenEffects.includes($effect`Invisible Avatar`) ? -10 : 0;
+  const shoeGum = get("hasDetectiveSchool") && !get("instant_saveCopDollars", false) ? -5 : 0;
+  const silentRunning = -5;
+  const feelingLonely = have($skill`Feel Lonely`) ? -5 : 0;
+  const effects = sumNumbers([
+    rose,
+    smoothMovements,
+    sonata,
+    favoriteBird,
+    shadowWaters,
+    powerfulGlove,
+    shoeGum,
+    silentRunning,
+    feelingLonely,
+  ]);
+
+  const disgeist = have($familiar`Disgeist`) ? -5 : 0;
+  const familiar = disgeist;
+
+  const darkHorse = get("horseryAvailable") ? -5 : 0;
+  const others = darkHorse;
+
+  const total = sumNumbers([
+    hat,
+    shirt,
+    back,
+    offhand,
+    pants,
+    accessories,
+    effects,
+    familiar,
+    others,
+  ]);
+
+  print("Determining if we should run NC before fam test...");
+  print(
+    `Hat ${hat}, Shirt ${shirt}, Back ${back}, Offhand ${offhand}, Pants ${pants}, Accessories ${accessories}, Effects ${effects}, Others ${others}`
+  );
+  if (total <= -95) {
+    print(`Total ${total} <= -95`, "green");
+  } else {
+    print(`Total ${total} > -95`, "red");
+  }
+
+  return total;
+}
+
+export function refillLatte(): void {
+  if (
+    !have($item`latte lovers member's mug`) ||
+    !get("_latteDrinkUsed") ||
+    get("_latteRefillsUsed") >= 3
+  )
+    return;
+
+  const lastIngredient = get("latteUnlocks").includes("carrot") ? "carrot" : "pumpkin";
+  if (get("_latteRefillsUsed") < 3) cliExecute(`latte refill cinnamon vanilla ${lastIngredient}`);
 }

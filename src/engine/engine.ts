@@ -93,11 +93,13 @@ export const farmingResourceResources: trackedResource[] = [
   new trackedResource("_deckCardsDrawn", "Deck Draws", 15),
   new trackedResource("_macrometeoriteUses", "Macrometeorites", 10),
   new trackedResource("_AAABatteriesUsed", "Batteries (AAA)", 7),
+  new trackedResource("_augSkillsCasts", "August Scepter Charges", 5),
   new trackedResource("_monkeyPawWishesUsed", "Monkey Paw Wishes", 5),
   new trackedResource("tomeSummons", "Tome Summons", 3),
-  new trackedResource("_genieWishesUsed", "Genie Wishes", 3),
+  new trackedResource($item`pocket wish`, "Genie Wishes", 3),
   new trackedResource("_pottedTeaTreeUsed", "Tea Tree", 3),
   new trackedResource($item`peppermint sprout`, "Peppermint Sprout", 3),
+  new trackedResource("_monsterHabitatsRecalled", "Monster Habitats", 3),
   new trackedResource("_favoriteBirdVisited", "Favorite Bird", 1),
   new trackedResource("_clanFortuneBuffUsed", "Zatara Consult", 1),
   new trackedResource("_floundryItemCreated", "Clan Floundry", 1),
@@ -233,13 +235,14 @@ export class Engine extends BaseEngine {
       "free rest",
     ];
     const bannedAutoHpRestorers = [...bannedAutoRestorers];
-    const bannedAutoMpRestorers = [...bannedAutoRestorers, "doc galaktik's invigorating tonic"];
+    const bannedAutoMpRestorers = [...bannedAutoRestorers];
     const hpItems = get("hpAutoRecoveryItems")
       .split(";")
       .filter((s) => !bannedAutoHpRestorers.includes(s))
       .join(";");
-    const mpItems = get("mpAutoRecoveryItems")
-      .split(";")
+    const mpItems = Array.from(
+      new Set([...get("mpAutoRecoveryItems").split(";"), "doc galaktik's invigorating tonic"])
+    )
       .filter((s) => !bannedAutoMpRestorers.includes(s))
       .join(";");
     manager.set({

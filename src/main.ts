@@ -1,15 +1,20 @@
 import {
   cliExecute,
-  gametimeToInt,
   myAdventures,
   myAscensions,
+  nowToString,
   print,
   setAutoAttack,
   turnsPlayed,
   userConfirm,
   visitUrl,
 } from "kolmafia";
-import { convertMilliseconds } from "./lib";
+import {
+  checkGithubVersion,
+  computeCombatFrequency,
+  convertMilliseconds,
+  simpleDateDiff,
+} from "./lib";
 import { get, set, sinceKolmafiaRevision } from "libram";
 import { Engine } from "./engine/engine";
 import { Args, getTasks } from "grimoire-kolmafia";
@@ -43,6 +48,9 @@ export const args = Args.create("InstantSCCS", "An automated low-shiny SCCS scri
 });
 
 export function main(command?: string): void {
+  sinceKolmafiaRevision(27577);
+  checkGithubVersion();
+
   Args.fill(args, command);
   if (args.help) {
     Args.showHelp(args);
@@ -62,15 +70,16 @@ export function main(command?: string): void {
     return;
   }
 
-  sinceKolmafiaRevision(27398);
-
   const setTimeNow = get(timeProperty, -1) === -1;
-  if (setTimeNow) set(timeProperty, gametimeToInt());
+  if (setTimeNow) set(timeProperty, nowToString("yyyyMMddhhmmssSSS"));
 
   // Some checks to align mafia prefs
   visitUrl("museum.php?action=icehouse");
   visitUrl("main.php");
   cliExecute("refresh all");
+
+  const swapFamAndNCTests =
+    !get("instant_skipAutomaticOptimizations", false) && computeCombatFrequency() <= -95;
 
   const tasks: Task[] = getTasks([
     RunStartQuest,
@@ -80,8 +89,8 @@ export function main(command?: string): void {
     HPQuest,
     MoxieQuest,
     MuscleQuest,
-    NoncombatQuest,
-    FamiliarWeightQuest,
+    swapFamAndNCTests ? NoncombatQuest : FamiliarWeightQuest,
+    swapFamAndNCTests ? FamiliarWeightQuest : NoncombatQuest,
     BoozeDropQuest,
     HotResQuest,
     WeaponDamageQuest,
@@ -89,28 +98,35 @@ export function main(command?: string): void {
     DonateQuest,
   ]);
   const engine = new Engine(tasks);
-  setAutoAttack(0);
+  try {
+    setAutoAttack(0);
 
-  while (!runComplete()) {
-    const task = engine.getNextTask();
-    if (task === undefined) throw "Unable to find available task, but the run is not complete";
-    if (args.confirm && !userConfirm(`Executing task ${task.name}, should we continue?`)) {
-      throw `User rejected execution of task ${task.name}`;
+    while (!runComplete()) {
+      const task = engine.getNextTask();
+      if (task === undefined) throw "Unable to find available task, but the run is not complete";
+      if (args.confirm && !userConfirm(`Executing task ${task.name}, should we continue?`)) {
+        throw `User rejected execution of task ${task.name}`;
+      }
+      if (task.ready !== undefined && !task.ready()) throw `Task ${task.name} is not ready`;
+      engine.execute(task);
     }
-    if (task.ready !== undefined && !task.ready()) throw `Task ${task.name} is not ready`;
-    engine.execute(task);
-  }
 
-  print("Community Service complete!", "purple");
-  print(`Adventures used: ${turnsPlayed()}`, "purple");
-  print(`Adventures remaining: ${myAdventures()}`, "purple");
-  print(
-    `Time: ${convertMilliseconds(
-      gametimeToInt() - get(timeProperty, gametimeToInt())
-    )} since first run today started`,
-    "purple"
-  );
-  set(timeProperty, -1);
+    print("Community Service complete!", "purple");
+    print(`Adventures used: ${turnsPlayed()}`, "purple");
+    print(`Adventures remaining: ${myAdventures()}`, "purple");
+    print(
+      `Time: ${convertMilliseconds(
+        simpleDateDiff(
+          get(timeProperty, nowToString("yyyyMMddhhmmssSSS")),
+          nowToString("yyyyMMddhhmmssSSS")
+        )
+      )} since first run today started`,
+      "purple"
+    );
+    set(timeProperty, -1);
+  } finally {
+    engine.destruct();
+  }
 }
 
 function runComplete(): boolean {

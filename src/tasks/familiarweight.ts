@@ -1,5 +1,19 @@
 import { CombatStrategy } from "grimoire-kolmafia";
-import { cliExecute, create, Effect, print, toInt, use, useFamiliar, visitUrl } from "kolmafia";
+import {
+  cliExecute,
+  create,
+  Effect,
+  equippedItem,
+  haveEffect,
+  itemAmount,
+  mySign,
+  numericModifier,
+  print,
+  toInt,
+  use,
+  useFamiliar,
+  visitUrl,
+} from "kolmafia";
 import {
   $effect,
   $familiar,
@@ -7,6 +21,7 @@ import {
   $item,
   $location,
   $skill,
+  $slot,
   CommunityService,
   get,
   have,
@@ -14,12 +29,34 @@ import {
 import { Quest } from "../engine/task";
 import { logTestSetup, tryAcquiringEffect } from "../lib";
 import Macro from "../combat";
-import { chooseHeaviestFamiliar, sugarItemsAboutToBreak } from "../engine/outfit";
+import {
+  avoidDaylightShavingsHelm,
+  chooseFamiliar,
+  chooseHeaviestFamiliar,
+  sugarItemsAboutToBreak,
+} from "../engine/outfit";
 
 export const FamiliarWeightQuest: Quest = {
   name: "Familiar Weight",
   completed: () => CommunityService.FamiliarWeight.isDone(),
   tasks: [
+    {
+      name: "Tune Moon to Platypus",
+      completed: () =>
+        !have($item`hewn moon-rune spoon`) ||
+        get("moonTuned") ||
+        get("instant_saveMoonTune", false) ||
+        mySign() === "Platypus",
+      do: (): void => {
+        cliExecute("spoon platypus");
+      },
+    },
+    {
+      name: "Fold Burning Newspaper",
+      completed: () => !have($item`burning newspaper`),
+      do: () => cliExecute("create burning paper crane"),
+      limit: { tries: 1 },
+    },
     {
       name: "Meteor Shower",
       completed: () =>
@@ -35,26 +72,13 @@ export const FamiliarWeightQuest: Quest = {
       ),
       outfit: () => ({
         weapon: $item`Fourth of May Cosplay Saber`,
-        familiar: $familiar`Cookbookbat`,
-        avoid: sugarItemsAboutToBreak(),
+        familiar: chooseFamiliar(false),
+        avoid: [
+          ...sugarItemsAboutToBreak(),
+          ...(avoidDaylightShavingsHelm() ? [$item`Daylight Shavings Helmet`] : []),
+        ],
       }),
       choices: { 1387: 3 },
-      limit: { tries: 1 },
-    },
-    {
-      name: "Tune Moon to Platypus",
-      completed: () =>
-        !have($item`hewn moon-rune spoon`) ||
-        get("moonTuned") ||
-        get("instant_saveMoonTune", false),
-      do: (): void => {
-        cliExecute("spoon platypus");
-      },
-    },
-    {
-      name: "Fold Burning Newspaper",
-      completed: () => !have($item`burning newspaper`),
-      do: () => cliExecute("create burning paper crane"),
       limit: { tries: 1 },
     },
     {
@@ -68,13 +92,24 @@ export const FamiliarWeightQuest: Quest = {
           $effect`Do I Know You From Somewhere?`,
           $effect`Empathy`,
           $effect`Fidoxene`,
+          $effect`Heart of Green`,
+          $effect`Kindly Resolve`,
           $effect`Leash of Linguini`,
           $effect`Puzzle Champ`,
+          $effect`Robot Friends`,
           $effect`Shortly Stacked`,
           $effect`Robot Friends`,
         ];
         usefulEffects.forEach((ef) => tryAcquiringEffect(ef, true));
 
+        if (have($item`love song of icy revenge`))
+          use(
+            Math.min(
+              4 - Math.floor(haveEffect($effect`Cold Hearted`) / 5),
+              itemAmount($item`love song of icy revenge`)
+            ),
+            $item`love song of icy revenge`
+          );
         if (
           have($skill`Summon Clip Art`) &&
           !get("instant_saveClipArt", false) &&
@@ -97,11 +132,18 @@ export const FamiliarWeightQuest: Quest = {
             else useFamiliar($familiar`Exotic Parrot`);
             use($item`box of Familiar Jacks`, 1);
           }
-
           cliExecute("maximize familiar weight");
         } else if (have($familiar`Mini-Trainbot`)) {
           useFamiliar($familiar`Mini-Trainbot`);
           cliExecute("maximize familiar weight");
+        }
+        if (
+          have($skill`Aug. 13th: Left/Off Hander's Day!`) &&
+          !get("instant_saveAugustScepter", false) &&
+          numericModifier(equippedItem($slot`off-hand`), "Familiar Weight") > 0 &&
+          CommunityService.FamiliarWeight.actualCost() > 1
+        ) {
+          tryAcquiringEffect($effect`Offhand Remarkable`);
         }
       },
       do: (): void => {

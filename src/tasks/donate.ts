@@ -60,7 +60,13 @@ function printResourceUsage(tResource: trackedResource): void {
         n ?? "?"
       } ${localResourceValue}`
     );
-  else print(`${name}: ${resourceValue}/${n ?? "?"} ${localResourceValue}`);
+  else if (typeof resourceValue === "number") {
+    print(
+      `${name}: ${Math.max(0, n ? n - resourceValue : resourceValue)}/${
+        n ?? "?"
+      } ${localResourceValue}`
+    );
+  } else print(`${name}: ${resourceValue}/${n ?? "?"} ${localResourceValue}`);
 }
 
 function logResourceUsage(): void {
@@ -84,7 +90,7 @@ function logResourceUsage(): void {
   print(
     `Pulls Used: ${get("_roninStoragePulls")
       .split(",")
-      .map((id) => $item`${id}`.name)
+      .map((id) => (id.length > 0 ? $item`${id}`.name : ""))
       .join(", ")}`
   );
   print("");

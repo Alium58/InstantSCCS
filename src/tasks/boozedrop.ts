@@ -1,6 +1,7 @@
 import { Quest } from "../engine/task";
 import {
   adv1,
+  autosell,
   buy,
   cliExecute,
   create,
@@ -12,23 +13,33 @@ import {
   getWorkshed,
   hermit,
   inebrietyLimit,
+  inMuscleSign,
   itemAmount,
   myInebriety,
+  myMaxhp,
+  myMeat,
   print,
-  toInt,
+  restoreHp,
+  restoreMp,
+  retrieveItem,
   use,
   useFamiliar,
+  useSkill,
   visitUrl,
 } from "kolmafia";
 import {
+  $coinmaster,
   $effect,
+  $effects,
   $familiar,
   $item,
   $location,
   $monster,
   $skill,
   $slot,
+  clamp,
   CommunityService,
+  DaylightShavings,
   get,
   have,
   TrainSet,
@@ -42,15 +53,38 @@ import {
   Station,
 } from "libram/dist/resources/2022/TrainSet";
 import { logTestSetup, tryAcquiringEffect, wishFor } from "../lib";
-import { sugarItemsAboutToBreak } from "../engine/outfit";
+import { chooseFamiliar, sugarItemsAboutToBreak } from "../engine/outfit";
 import { CombatStrategy } from "grimoire-kolmafia";
-import Macro from "../combat";
+import Macro, { haveFreeBanish } from "../combat";
 import { forbiddenEffects } from "../resources";
 
 export const BoozeDropQuest: Quest = {
   name: "Booze Drop",
   completed: () => CommunityService.BoozeDrop.isDone(),
   tasks: [
+    {
+      name: "Carol Ghost Buff",
+      prepare: (): void => {
+        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
+        restoreMp(50);
+      },
+      completed: () =>
+        !have($familiar`Ghost of Crimbo Carols`) ||
+        !haveFreeBanish() ||
+        $effects`Do You Crush What I Crush?, Holiday Yoked, Let It Snow/Boil/Stink/Frighten/Grease, All I Want For Crimbo Is Stuff, Crimbo Wrapping`.some(
+          (ef) => have(ef)
+        ),
+      do: $location`The Dire Warren`,
+      combat: new CombatStrategy().macro(Macro.banish().abort()),
+      outfit: {
+        offhand: $item`latte lovers member's mug`,
+        acc1: $item`Kremlin's Greatest Briefcase`,
+        acc2: $item`Lil' Doctor™ bag`,
+        familiar: $familiar`Ghost of Crimbo Carols`,
+        famequip: $item.none,
+      },
+      limit: { tries: 1 },
+    },
     {
       name: "Configure Trainset",
       completed: () =>
@@ -78,7 +112,10 @@ export const BoozeDropQuest: Quest = {
     },
     {
       name: "Acquire Clover",
-      completed: () => have($item`11-leaf clover`) || get("_cloversPurchased") >= 2,
+      completed: () =>
+        have($item`11-leaf clover`) ||
+        get("_cloversPurchased") >= 2 ||
+        get("instant_skipCyclopsEyedrops", false),
       do: (): void => {
         buy(1, $item`chewing gum on a string`);
         use(1, $item`chewing gum on a string`);
@@ -88,10 +125,32 @@ export const BoozeDropQuest: Quest = {
     },
     {
       name: "Get Cyclops Eyedrops",
-      completed: () => have($item`cyclops eyedrops`) || have($effect`One Very Clear Eye`),
+      completed: () =>
+        have($item`cyclops eyedrops`) ||
+        have($effect`One Very Clear Eye`) ||
+        get("instant_skipCyclopsEyedrops", false),
       do: (): void => {
         if (!have($effect`Lucky!`)) use($item`11-leaf clover`);
         if (!have($item`cyclops eyedrops`)) adv1($location`The Limerick Dungeon`, -1);
+      },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Acquire Government",
+      completed: () =>
+        !have($item`government cheese`) ||
+        get("lastAnticheeseDay") > 0 ||
+        get("instant_skipGovernment", false),
+      do: (): void => {
+        inMuscleSign()
+          ? retrieveItem($item`bitchin' meatcar`)
+          : retrieveItem($item`Desert Bus pass`);
+        if (!have($item`Desert Bus pass`) && !have($item`bitchin' meatcar`)) {
+          autosell($item`government cheese`, itemAmount($item`government cheese`));
+          return;
+        }
+        visitUrl("place.php?whichplace=desertbeach&action=db_nukehouse");
+        retrieveItem($item`government`);
       },
       limit: { tries: 1 },
     },
@@ -100,6 +159,9 @@ export const BoozeDropQuest: Quest = {
       completed: () => get("_photocopyUsed"),
       do: (): void => {
         cliExecute("chat");
+        if (have($item`photocopied monster`) && get("photocopyMonster") !== $monster`ungulith`) {
+          cliExecute("fax send");
+        }
         if (
           (have($item`photocopied monster`) || faxbot($monster`ungulith`)) &&
           get("photocopyMonster") === $monster`ungulith`
@@ -108,12 +170,18 @@ export const BoozeDropQuest: Quest = {
         }
       },
       outfit: () => ({
+        hat:
+          DaylightShavings.nextBuff() === $effect`Musician's Musician's Moustache` &&
+          !DaylightShavings.hasBuff() &&
+          have($item`Daylight Shavings Helmet`)
+            ? $item`Daylight Shavings Helmet`
+            : undefined,
         back: $item`vampyric cloake`,
         weapon: $item`Fourth of May Cosplay Saber`,
         offhand: have($skill`Double-Fisted Skull Smashing`)
           ? $item`industrial fire extinguisher`
           : undefined,
-        familiar: $familiar`Cookbookbat`,
+        familiar: chooseFamiliar(false),
         modifier: "myst",
         avoid: sugarItemsAboutToBreak(),
       }),
@@ -125,7 +193,7 @@ export const BoozeDropQuest: Quest = {
           .trySkill($skill`Use the Force`)
           .default()
       ),
-      limit: { tries: 1 },
+      limit: { tries: 5 },
     },
     {
       name: "Eat roasted vegetable of Jarlsberg",
@@ -161,10 +229,32 @@ export const BoozeDropQuest: Quest = {
       limit: { tries: 1 },
     },
     {
-      name: "Deck Wheel of Fortune",
-      ready: () => get("_deckCardsDrawn") <= 10,
+      name: "Drink Cabernet Sauvignon",
       completed: () =>
-        get("_deckCardsDrawn") >= 15 ||
+        have($effect`Cabernet Hunter`) ||
+        (!have($item`bottle of Cabernet Sauvignon`) &&
+          // eslint-disable-next-line libram/verify-constants
+          (!have($skill`Aug. 31st: Cabernet Sauvignon Day!`) ||
+            get("instant_saveAugustScepter", false))) ||
+        myInebriety() + 3 > inebrietyLimit() ||
+        get("instant_skipCabernetSauvignon", false),
+      do: (): void => {
+        if (!have($item`bottle of Cabernet Sauvignon`))
+          // eslint-disable-next-line libram/verify-constants
+          useSkill($skill`Aug. 31st: Cabernet Sauvignon Day!`);
+        if (myInebriety() + 3 <= inebrietyLimit()) {
+          tryAcquiringEffect($effect`Ode to Booze`);
+          drink($item`bottle of Cabernet Sauvignon`);
+          uneffect($effect`Ode to Booze`);
+        }
+      },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Deck Wheel of Fortune",
+      completed: () =>
+        get("_deckCardsDrawn") > 10 ||
+        have($effect`Fortune of the Wheel`) ||
         !have($item`Deck of Every Card`) ||
         get("instant_saveDeck", false),
       do: (): void => {
@@ -199,23 +289,33 @@ export const BoozeDropQuest: Quest = {
     {
       name: "Loathing Idol Microphone",
       completed: () =>
-        // eslint-disable-next-line libram/verify-constants
         have($effect`Spitting Rhymes`) ||
-        // eslint-disable-next-line libram/verify-constants
         !have($item`2002 Mr. Store Catalog`) ||
         get("availableMrStore2002Credits", 0) <= get("instant_saveCatalogCredits", 0) ||
-        // eslint-disable-next-line libram/verify-constants
         forbiddenEffects.includes($effect`Spitting Rhymes`),
       do: (): void => {
-        // eslint-disable-next-line libram/verify-constants
         if (!have($item`Loathing Idol Microphone`)) {
-          // eslint-disable-next-line libram/verify-constants
-          visitUrl(`inv_use.php?whichitem=${toInt($item`2002 Mr. Store Catalog`)}&which=f0&pwd`);
-          visitUrl("shop.php?whichshop=mrstore2002&action=buyitem&quantity=1&whichrow=1384&pwd");
+          buy($coinmaster`Mr. Store 2002`, 1, $item`Loathing Idol Microphone`);
         }
-        // eslint-disable-next-line libram/verify-constants
         withChoice(1505, 3, () => use($item`Loathing Idol Microphone`));
       },
+      limit: { tries: 1 },
+    },
+    {
+      name: "Favorite Bird (Item)",
+      completed: () =>
+        !have($skill`Visit your Favorite Bird`) ||
+        get("_favoriteBirdVisited") ||
+        !get("yourFavoriteBirdMods").includes("Item Drops") ||
+        get("instant_saveFavoriteBird", false),
+      do: () => useSkill($skill`Visit your Favorite Bird`),
+      limit: { tries: 1 },
+    },
+    {
+      name: "Buy Oversized Sparkler",
+      ready: () => myMeat() >= 1000,
+      completed: () => have($item`oversized sparkler`),
+      do: () => buy($item`oversized sparkler`, 1),
       limit: { tries: 1 },
     },
     {
@@ -226,7 +326,12 @@ export const BoozeDropQuest: Quest = {
           $effect`Crunching Leaves`,
           $effect`Fat Leon's Phat Loot Lyric`,
           // $effect`Feeling Lost`,
+          $effect`Fortunate Resolve`,
+          $effect`Heart of Lavender`,
+          $effect`I See Everything Thrice!`,
+          $effect`Incredibly Well Lit`,
           $effect`items.enh`,
+          $effect`Joyful Resolve`,
           $effect`One Very Clear Eye`,
           $effect`Nearly All-Natural`,
           $effect`The Spirit of Taking`,
@@ -240,6 +345,7 @@ export const BoozeDropQuest: Quest = {
           useFamiliar($familiar`Trick-or-Treating Tot`);
           equip($slot`familiar`, $item`li'l ninja costume`);
         }
+
         // If it saves us >= 6 turns, try using a wish
         if (CommunityService.BoozeDrop.actualCost() >= 7) wishFor($effect`Infernal Thirst`);
       },

@@ -115,6 +115,11 @@ function buildIotmList(): Requirement[] {
       why: "Free fights, Turngen",
       optional: true,
     },
+    {
+      thing: $skill`Just the Facts`,
+      why: "More fights from locket, more wishes from rift",
+      optional: true,
+    },
   ];
 }
 
@@ -554,7 +559,6 @@ function buildMiscList(): Requirement[] {
       thing: $skill`Evoke Eldritch Horror`,
       why: "Free Fight",
       optional: true,
-      recommended: true,
     },
 
     {
