@@ -465,6 +465,8 @@ export const RunStartQuest: Quest = {
           if (myMeat() < 250) throw new Error("Insufficient Meat to purchase yellow rocket!");
           buy($item`yellow rocket`, 1);
         }
+        if (have($item`Jurassic Parka`) && get("parkaMode") !== "dilophosaur")
+          cliExecute("parka dilophosaur");
         unbreakableUmbrella();
         if (haveEquipped($item`miniature crystal ball`)) equip($slot`familiar`, $item.none);
       },
@@ -483,13 +485,17 @@ export const RunStartQuest: Quest = {
         })(),
       do: () => mapMonster($location`The Skeleton Store`, $monster`novelty tropical skeleton`),
       combat: new CombatStrategy().macro(
-        Macro.if_($monster`novelty tropical skeleton`, Macro.tryItem($item`yellow rocket`)).abort()
+        Macro.if_(
+          $monster`novelty tropical skeleton`,
+          Macro.trySkill($skill`Spit jurassic acid`).tryItem($item`yellow rocket`)
+        ).abort()
       ),
       outfit: (): OutfitSpec => {
         return {
           offhand: $item`unbreakable umbrella`,
           acc1: $item`codpiece`,
           familiar: chooseFamiliar(false),
+          shirt: $item`Jurassic Parka`,
           modifier:
             "0.25 mys, 0.33 ML, -equip tinsel tights, -equip wad of used tape, -equip miniature crystal ball",
         };
@@ -512,11 +518,7 @@ export const RunStartQuest: Quest = {
         if (get("_snokebombUsed") === 0) restoreMp(50);
         if (haveEquipped($item`miniature crystal ball`)) equip($slot`familiar`, $item.none);
       },
-      completed: () =>
-        have($item`cherry`) &&
-        $monsters`remaindered skeleton, swarm of skulls, factory-irregular skeleton, novelty tropical skeleton`.filter(
-          (m) => Array.from(getBanishedMonsters().values()).includes(m)
-        ).length >= (have($skill`Map the Monsters`) ? 2 : 3),
+      completed: () => have($item`cherry`),
       do: $location`The Skeleton Store`,
       combat: new CombatStrategy().macro(
         Macro.if_($monster`novelty tropical skeleton`, Macro.tryItem($item`yellow rocket`))

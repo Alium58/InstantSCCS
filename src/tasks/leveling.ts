@@ -55,6 +55,7 @@ import {
   AutumnAton,
   clamp,
   CombatLoversLocket,
+  CommunityService,
   ensureEffect,
   get,
   getKramcoWandererChance,
@@ -401,13 +402,14 @@ export const LevelingQuest: Quest = {
     {
       name: "Wish for XP% buff",
       // TODO: Make this completed if we've already wished twice with the paw (requires mafia tracking)
+      ready: () => CommunityService.CoilWire.isDone(),
       completed: () =>
         have($effect`Different Way of Seeing Things`) ||
         !have($item`cursed monkey's paw`) ||
         forbiddenEffects.includes($effect`Different Way of Seeing Things`) ||
         get("instant_saveMonkeysPaw", false) ||
         myBasestat($stat`Mysticality`) >= targetBaseMyst - targetBaseMystGap ||
-        get("_monkeyPawWishesUsed", 0) >= 2,
+        get("_monkeyPawWishesUsed", 0) >= 1,
       do: () => wishFor($effect`Different Way of Seeing Things`, false),
     },
     {
@@ -479,6 +481,23 @@ export const LevelingQuest: Quest = {
         }
       },
       outfit: { modifier: "myst, mp, -tie" },
+    },
+    {
+      name: "Oliver's Place",
+      prepare: (): void => {
+        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
+        unbreakableUmbrella();
+        restoreMp(50);
+      },
+      completed: () => get("_speakeasyFreeFights", 0) >= 3 || !get("ownsSpeakeasy"),
+      do: $location`An Unusually Quiet Barroom Brawl`,
+      combat: new CombatStrategy().macro(Macro.default()),
+      outfit: baseOutfit,
+      limit: { tries: 3 },
+      post: (): void => {
+        sendAutumnaton();
+        sellMiscellaneousItems();
+      },
     },
     {
       name: "Alice Army",
@@ -979,23 +998,6 @@ export const LevelingQuest: Quest = {
         offhand: $item`Kramco Sausage-o-Matic™`,
       }),
       combat: new CombatStrategy().macro(Macro.default(useCinch)),
-      post: (): void => {
-        sendAutumnaton();
-        sellMiscellaneousItems();
-      },
-    },
-    {
-      name: "Oliver's Place",
-      prepare: (): void => {
-        restoreHp(clamp(1000, myMaxhp() / 2, myMaxhp()));
-        unbreakableUmbrella();
-        restoreMp(50);
-      },
-      completed: () => get("_speakeasyFreeFights", 0) >= 3 || !get("ownsSpeakeasy"),
-      do: $location`An Unusually Quiet Barroom Brawl`,
-      combat: new CombatStrategy().macro(Macro.default()),
-      outfit: baseOutfit,
-      limit: { tries: 3 },
       post: (): void => {
         sendAutumnaton();
         sellMiscellaneousItems();
